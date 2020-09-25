@@ -12,6 +12,14 @@ var puerta = "#3a1700";
 var tierra = "#c6892f";
 var llave = "#c6bc00";
 
+var protagonista;
+
+var enemigo = [];
+
+var imagenAntorcha;
+
+var tileMap;
+
 // Definir escenario
 var escenario = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -28,21 +36,146 @@ var escenario = [
 
 // Función que dibuja el escenario en la pantalla
 function dibujaEscenario() {
-  var color;
   for (y = 0; y < escenario.length; y++) {
     for (x = 0; x < escenario[0].length; x++) {
-      if (escenario[y][x] == 0) color = muro;
-      if (escenario[y][x] == 1) color = puerta;
-      if (escenario[y][x] == 2) color = tierra;
-      if (escenario[y][x] == 3) color = llave;
+      var tile = escenario[y][x]; // Donde se va a dibujar
 
-      ctx.fillStyle = color;
-      ctx.fillRect(x * anchoFicha, y * altoFicha, anchoFicha, altoFicha); // dibuja rectangulo, se le pasan las medidas (desde la coordenada) y las coordenadas
+      ctx.drawImage(
+        tileMap,
+        tile * 32,
+        0,
+        32,
+        32,
+        anchoFicha * x,
+        altoFicha * y,
+        anchoFicha,
+        altoFicha
+      ); // Dibujar tileMap, donde empieza a recortar la imagen (Y fijo, X secuencial), el tamaño del recorte (nuestra imagen es 32x32), donde lo tiene que dibujar, y de qué tamaño
     }
   }
 }
 
-// Plantilla del Objeto Jugador
+// Función que dibuja animación de antorcha
+var antorcha = function (x, y) {
+  this.x = x;
+  this.y = y;
+
+  this.retraso = 10;
+  this.contador = 0;
+  this.fotograma = 0; //0-3 (cantidad de dibujos que tengo en tileMap)
+
+  this.cambiaFotograma = function () {
+    if (this.fotograma < 3) {
+      this.fotograma++;
+    } else {
+      this.fotograma = 0;
+    }
+  };
+
+  // Dibuja animación
+  this.dibuja = function () {
+    if (this.contador < this.retraso) {
+      this.contador++;
+    } else {
+      this.contador = 0;
+      this.cambiaFotograma();
+    }
+
+    ctx.drawImage(
+      tileMap,
+      this.fotograma * 32, // inicio X secuencial
+      64, // Y
+      32, // tamaño del corte
+      32, // tamaño del corte
+      anchoFicha * x, // donde empieza a dibujar
+      altoFicha * y, // donde empieza a dibujar
+      anchoFicha, // tamaño del dibujo
+      altoFicha // tamaño del dibujo
+    );
+  };
+};
+
+// Plantilla del OBJETO ENEMIGO
+var malo = function (x, y) {
+  this.x = x;
+  this.y = y;
+
+  this.direccion = Math.floor(Math.random() * 4);
+
+  this.retraso = 50; // cantidad de fotogramas (que se mueva 1 vez por segundo)
+  this.fotograma = 0; // contador (el retraso es el tope)
+
+  this.dibuja = function () {
+    ctx.drawImage(
+      tileMap,
+      0,
+      32,
+      32,
+      32,
+      this.x * anchoFicha,
+      this.y * altoFicha,
+      anchoFicha,
+      altoFicha
+    );
+  };
+
+  this.compruebaColision = function (x, y) {
+    var colisiona = false;
+
+    if (escenario[y][x] == 0) {
+      colisiona = true;
+    }
+    return colisiona;
+  };
+
+  this.mueve = function () {
+    protagonista.colisionEnemigo(this.x, this.y);
+
+    if (this.contador < this.retraso) {
+      this.contador++;
+    } else {
+      this.contador = 0;
+
+      // ARRIBA
+      if (this.direccion == 0) {
+        if (this.compruebaColision(this.x, this.y - 1) == false) {
+          this.y--;
+        } else {
+          this.direccion = Math.floor(Math.random() * 4);
+        }
+      }
+
+      // ABAJO
+      if (this.direccion == 1) {
+        if (this.compruebaColision(this.x, this.y + 1) == false) {
+          this.y++;
+        } else {
+          this.direccion = Math.floor(Math.random() * 4);
+        }
+      }
+
+      // IZQUIERDA
+      if (this.direccion == 2) {
+        if (this.compruebaColision(this.x - 1, this.y) == false) {
+          this.x--;
+        } else {
+          this.direccion = Math.floor(Math.random() * 4);
+        }
+      }
+
+      // DERECHA
+      if (this.direccion == 3) {
+        if (this.compruebaColision(this.x + 1, this.y) == false) {
+          this.x++;
+        } else {
+          this.direccion = Math.floor(Math.random() * 4);
+        }
+      }
+    }
+  };
+};
+
+// Plantilla del OBJETO JUGADOR
 var jugador = function () {
   // Punto de partida
   this.x = 1;
@@ -51,13 +184,24 @@ var jugador = function () {
   this.llave = false;
 
   this.dibuja = function () {
-    ctx.fillStyle = this.color;
-    ctx.fillRect(
+    ctx.drawImage(
+      tileMap,
+      32,
+      32,
+      32,
+      32,
       this.x * anchoFicha,
       this.y * altoFicha,
       anchoFicha,
       altoFicha
     );
+  };
+
+  // cada vez que se mueva un enemigo, envía sus coordenadas al jugador y se comprueba desde acá (jugador)
+  this.colisionEnemigo = function (x, y) {
+    if (this.x == x && this.y == y) {
+      this.muerte();
+    }
   };
 
   this.margenes = function (x, y) {
@@ -99,10 +243,22 @@ var jugador = function () {
 
   this.victoria = function () {
     console.log("Has ganado!!");
+    alert("Has ganado!!");
     this.x = 1;
     this.y = 1;
-    this.llave = false;
-    escenario[8][3] = 3;
+    this.llave = false; // el jugador ya no tiene la llave
+    escenario[8][3] = 3; // volvemos a poner la llave en su lugar
+    document.getElementById("texto").innerHTML = "";
+  };
+
+  this.muerte = function () {
+    console.log("Has perdido!!");
+    alert("Has perdido!!");
+    this.x = 1;
+    this.y = 1;
+    this.llave = false; // el jugador ya no tiene la llave
+    escenario[8][3] = 3; // volvemos a poner la llave en su lugar
+    document.getElementById("texto").innerHTML = "";
   };
 
   this.logicaObjetos = function () {
@@ -112,6 +268,7 @@ var jugador = function () {
       this.llave = true;
       escenario[this.y][this.x] = 2;
       console.log("Has obtenido la llave!!!");
+      document.getElementById("texto").innerHTML = "Has obtenido la llave!!!";
     }
 
     // ABRIMOS LA PUERTA
@@ -120,12 +277,11 @@ var jugador = function () {
         this.victoria();
       } else {
         console.log("Te falta la llave! No puedes pasar");
+        alert("Te falta la llave! No puedes pasar");
       }
     }
   };
 };
-
-var protagonista;
 
 // Primera función que se ejecuta luego de cargado el body
 // Identifica canvas y contexto y llama al intervalo en el que se ejecutará la función principal
@@ -133,8 +289,19 @@ function inicializa() {
   canvas = document.getElementById("canvas");
   ctx = canvas.getContext("2d");
 
-  // Crear Objeto Jugador
+  tileMap = new Image();
+  tileMap.src = "tilemap.png";
+
+  // CREAMOS AL JUGADOR
   protagonista = new jugador();
+
+  // CREAMOS LA ANTORCHA
+  imagenAntorcha = new antorcha(0, 0);
+
+  // CREAMOS LOS ENEMIGOS
+  enemigo.push(new malo(2, 7));
+  enemigo.push(new malo(6, 7));
+  enemigo.push(new malo(7, 4));
 
   // LECTURA DEL TECLADO
   document.addEventListener("keydown", function (tecla) {
@@ -175,5 +342,11 @@ function borraCanvas() {
 function principal() {
   borraCanvas();
   dibujaEscenario();
+  imagenAntorcha.dibuja();
   protagonista.dibuja();
+
+  for (c = 0; c < enemigo.length; c++) {
+    enemigo[c].mueve();
+    enemigo[c].dibuja();
+  }
 }
