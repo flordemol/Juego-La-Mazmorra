@@ -6,5 +6,6 @@ Se utilizó:
 * Lectura de ratón y teclado para el control del juego
 * Gráficos y animaciones a partir de Tilesets
 * Escenario 2D basado en una matriz
+* Musica y efectos FX
 
 ![Captura](https://user-images.githubusercontent.com/54426004/94219395-21f1f300-febd-11ea-8c3f-520691cc52bf.JPG)
