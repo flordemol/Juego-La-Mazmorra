@@ -20,6 +20,37 @@ var imagenAntorcha;
 
 var tileMap;
 
+// EFECTOS DE SONIDO y MUSICA
+var sonido1, sonido2, sonido3;
+var musica;
+
+// Crear objeto Howlder
+sonido1 = new Howl({
+  // Fuente del sonido
+  src: ["sound/fuego.wav"],
+  // Definir si se reproduce en bucle
+  loop: false,
+});
+
+sonido2 = new Howl({
+  // Fuente del sonido
+  src: ["sound/llave.wav"],
+  // Definir si se reproduce en bucle
+  loop: false,
+});
+
+sonido3 = new Howl({
+  // Fuente del sonido
+  src: ["sound/puerta.wav"],
+  // Definir si se reproduce en bucle
+  loop: false,
+});
+
+musica = new Howl({
+  src: ["music/fortaleza.mp3"],
+  loop: true,
+});
+
 // Definir escenario
 var escenario = [
   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -242,6 +273,7 @@ var jugador = function () {
   };
 
   this.victoria = function () {
+    sonido3.play();
     console.log("Has ganado!!");
     alert("Has ganado!!");
     this.x = 1;
@@ -252,6 +284,7 @@ var jugador = function () {
   };
 
   this.muerte = function () {
+    sonido1.play();
     console.log("Has perdido!!");
     alert("Has perdido!!");
     this.x = 1;
@@ -267,6 +300,7 @@ var jugador = function () {
     if (objeto == 3) {
       this.llave = true;
       escenario[this.y][this.x] = 2;
+      sonido2.play();
       console.log("Has obtenido la llave!!!");
       document.getElementById("texto").innerHTML = "Has obtenido la llave!!!";
     }
@@ -291,6 +325,9 @@ function inicializa() {
 
   tileMap = new Image();
   tileMap.src = "tilemap.png";
+
+  // MUSICA
+  musica.play();
 
   // CREAMOS AL JUGADOR
   protagonista = new jugador();
